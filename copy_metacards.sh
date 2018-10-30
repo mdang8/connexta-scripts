@@ -2,16 +2,18 @@
 
 METACARD_DIR=~/Downloads/xml
 CDM_DIR=/tmp/cdm
+DEFAULT_NUM_COPIES=25
+NUM_COPIES=${1-$DEFAULT_NUM_COPIES}
+NUM_FILES_IN_METACARD_DIR=$( count_files_in_dir $METACARD_DIR )
 
 count_files_in_dir () {
     return $( ls -l $1 | wc -l )
 }
 
 main () {
-    NUM_FILES_IN_METACARD_DIR=$( count_files_in_dir $METACARD_DIR )
     START_TIME=$SECONDS
 
-    for i in `seq 1 25`;
+    for i in `seq 1 $NUM_TIMES_TO_COPY`;
     do
         # counts the # of lines in the ls output for the CDM directory
         NUM_FILES_IN_CDM_DIR=$( count_files_in_dir $CDM_DIR )
@@ -30,7 +32,7 @@ main () {
 
     END_TIME=$SECONDS
 
-    echo "Finished copying $(( 5 * 25 )) files in $(( END_TIME - START_TIME  )) seconds."
+    echo "Finished copying $(( 5 * NUM_TIMES_TO_COPY )) files in $(( END_TIME - START_TIME  )) seconds."
 }
 
 main
