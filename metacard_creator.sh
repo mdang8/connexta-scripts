@@ -3,7 +3,8 @@
 DEFAULT_NUMBER=251
 # use default number if no command line argument given
 NUMBER_OF_METACARDS=${1-$DEFAULT_NUMBER}
-CDM_DIRECTORY_PATH=/tmp/cdm
+CDM_DIRECTORY_PATH=~/Documents/created_test_metacards
+#CDM_DIRECTORY_PATH=/tmp/cdm
 FILENAME="metacard_test"
 
 echo "Number of files to create: ${NUMBER_OF_METACARDS}"
