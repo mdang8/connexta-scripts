@@ -116,6 +116,8 @@ ETC_DIR=""
 SECURITY_PROFILE_FILE=""
 USER_ATTRIBUTES_FILE=""
 WORKING_FILE=""
+log_file="./log_file.txt"
+touch $log_file
 
 # Set up function to be run at the beginning that handles setting the global variables defining
 # file locations and command-line arguments.
@@ -131,13 +133,18 @@ function set_up() {
     WORKING_FILE="./jq_tmp_working.json"
     # use the current user attributes file as a starting point for the working file
     cp $USER_ATTRIBUTES_FILE $WORKING_FILE
+
+    return 0
 }
 
 # Clean up function to be run at the end that handles removing any temporary files created during
 # the script's operation.
 function clean_up() {
-    jq '.' $WORKING_FILE
+    cat $log_file
+    # jq '.' $WORKING_FILE
     rm $WORKING_FILE
+
+    return 0
 }
 
 # Helper function to iterate through each attribute of the current property group of the selected
@@ -186,24 +193,30 @@ function set_attributes() {
 
     # return the base64 encoded working object variable with all the new attributes
     echo $(echo $working_obj | jq -r '@base64')
+    return 0
 }
 
 # Sets the properties for the designated config files.
 # ${1} - Base64-encoded array of config properties
 function set_config_properties() {
     # iterates through the config objects and sets the properties in the specified locations
-    for config in $(echo ${1} | base64 --decode | jq -r '.[]'); do
-        pid=$(echo $config | jq -r '.pid')
-        properties=$(echo $config | jq -r '.properties | to_entries | .[]')
+    # we have to base64 encode the config objects to prevent jq from wrapping the whitespaces with
+    # single quotes and causing the parser to break
+    for config in $(echo ${1} | base64 --decode | jq -r '.[] | @base64'); do
+        pid=$(echo $config | base64 --decode | jq -r '.value.pid')
+        properties=$(echo $config | base64 --decode | jq -r '.value.properties | to_entries | .[]')
         # @TODO - locate the config file to modify
-        config_file=$()
-        for property in $properties; do
-            property_key=$(echo $property | jq -r '.key')
-            property_value=$(echo $property | jq -r '.value')
+        # config_file=$()
+        for property in $(echo $properties | jq -r '@base64'); do
+            property_key=$(echo $property | base64 --decode | jq -r '.key')
+            property_value=$(echo $property | base64 --decode | jq -r '.value')
+            echo "${property_key}: \"${property_value}\"" >> $log_file
             # use oconnormi's props command line tool for editing config files
-            props set $property_key $property_value $config_file
+            # props set $property_key $property_value $config_file
         done
     done
+
+    return 0
 }
 
 # Parses the JSON object for the selected security profile and gets the groups of properties
@@ -219,6 +232,8 @@ function set_profile_properties() {
             > $WORKING_FILE
     echo $(echo $(set_attributes $system_claims $HOSTNAME true) | base64 --decode | jq '.') \
             > $WORKING_FILE
+    echo $(set_config_properties $configs)
+    return 0
 }
 
 # Main function to run when the script is started.
@@ -236,6 +251,7 @@ function main() {
     profile_attributes=$(jq -r --arg key $SECURITY_PROFILE '.[ $key ] | @base64' $SECURITY_PROFILE_FILE)
     set_profile_properties $profile_attributes
     clean_up
+    return 0
 }
 
 main
